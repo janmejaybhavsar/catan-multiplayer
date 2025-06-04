@@ -5,6 +5,7 @@ import {
   MapPin, Navigation, Info, Settings
 } from 'lucide-react';
 import io from 'socket.io-client';
+import './App.css';
 
 // Game constants
 const RESOURCES = {
@@ -121,6 +122,7 @@ const InteractiveHexTile = ({
         y={center.y - 10}
         textAnchor="middle"
         fontSize="20"
+        className='hex-icon'
       >
         {getResourceIcon(tile.type)}
       </text>
@@ -143,6 +145,7 @@ const InteractiveHexTile = ({
             fontSize="12"
             fontWeight="bold"
             fill={tile.number === 6 || tile.number === 8 ? '#dc2626' : '#374151'}
+            className='hex-number'
           >
             {tile.number}
           </text>
@@ -294,8 +297,8 @@ const GameBoard = ({
   validPlacements
 }) => {
   return (
-    <div className="bg-gradient-to-b from-blue-400 to-blue-600 rounded-lg p-4 shadow-xl">
-      <svg width="500" height="450" viewBox="0 0 500 450">
+    <div className="game-board">
+      <svg width="800" height="750" viewBox="0 0 800 750" className='hex-grid'>
         {board.map(tile => (
           <InteractiveHexTile
             key={tile.id}
@@ -322,8 +325,8 @@ const DiceComponent = ({ value, isRolling }) => {
   const DiceIcon = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6][value - 1] || Dice1;
   
   return (
-    <div className={`w-16 h-16 bg-white rounded-xl shadow-lg flex items-center justify-center transform transition-all duration-300 ${isRolling ? 'animate-bounce' : 'hover:scale-105'}`}>
-      <DiceIcon className="w-10 h-10 text-gray-700" />
+    <div className={`dice ${isRolling ? 'rolling' : ''}`}>
+      <DiceIcon className="w-24 h-24 text-gray-700" />
     </div>
   );
 };
@@ -344,10 +347,10 @@ const ResourceCard = ({ type, count, showCount = true }) => {
   const resource = getResourceData(type);
   
   return (
-    <div className={`${resource.color} text-white rounded-lg p-3 min-w-20 text-center shadow-md transform transition-all duration-200 hover:scale-105`}>
-      <div className="text-2xl mb-1">{resource.icon}</div>
-      {showCount && <div className="text-lg font-bold">{count}</div>}
-      <div className="text-xs font-medium">{resource.name}</div>
+    <div className={`${resource.color} resource-card ${type}`}>
+      <div className="resource-icon">{resource.icon}</div>
+      {showCount && <div className="resource-count">{count}</div>}
+      <div className="resource-name">{resource.name}</div>
     </div>
   );
 };
@@ -454,19 +457,19 @@ const GamePhaseIndicator = ({ gamePhase, currentPlayer, turnPhase, round, maxRou
   };
 
   return (
-    <div className="bg-white rounded-lg p-4 shadow-lg border-l-4 border-blue-500">
-      <div className="flex items-center gap-3">
-        <Info className="w-6 h-6 text-blue-500" />
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: '#f8f9fa', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Info size={24} />
         <div>
-          <div className="font-bold text-lg">{getPhaseText()}</div>
-          <div className="text-sm text-gray-600">
+          <div style={{ fontWeight: 'bold', fontSize: '18px' }}>{getPhaseText()}</div>
+          <div style={{ fontSize: '14px', color: '#6c757d' }}>
             {currentPlayer && (
               <>
-                <span style={{ color: currentPlayer.color }} className="font-medium">
+                <span style={{ color: currentPlayer.color, fontWeight: '500' }}>
                   {currentPlayer.name}
                 </span>
                 {' - '}
-                <span className="capitalize">{getTurnPhaseText()}</span>
+                <span style={{ textTransform: 'capitalize' }}>{getTurnPhaseText()}</span>
               </>
             )}
           </div>
@@ -661,233 +664,230 @@ function App() {
 
   // Menu Interface
   if (gameState === 'menu') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-600 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full transform transition-all duration-300 hover:scale-105">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">Settlers of Catan</h1>
-            <p className="text-gray-600">Multiplayer Strategy Game</p>
-          </div>
-          
-          <div className="text-center mb-6">
-            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
-              connectionStatus === 'connected' 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-red-100 text-red-800'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                connectionStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'
-              }`} />
-              {connectionStatus === 'connected' ? 'Connected' : 'Disconnected'}
-            </div>
-          </div>
-          
-          {errorMessage && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              {errorMessage}
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            <input
-              type="text"
-              placeholder="Enter your name"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              maxLength={20}
-            />
-            
-            <button
-              onClick={createGame}
-              disabled={!canCreateGame}
-              className={`w-full py-4 px-6 rounded-lg text-lg font-semibold transition-all duration-200 ${
-                canCreateGame
-                  ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              🏝️ Create New Game
-            </button>
-            
-            <div className="text-center text-gray-400 font-medium">or</div>
-            
-            <input
-              type="text"
-              placeholder="Enter Game ID"
-              value={joinGameId}
-              onChange={(e) => setJoinGameId(e.target.value.toUpperCase())}
-              className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-            />
-            
-            <button
-              onClick={joinGame}
-              disabled={!canJoinGame}
-              className={`w-full py-4 px-6 rounded-lg text-lg font-semibold transition-all duration-200 ${
-                canJoinGame
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              🚀 Join Game
-            </button>
-          </div>
-          
-          <div className="mt-8 text-center text-sm text-gray-500 space-y-1">
-            <p>🎯 Strategy • 🎲 Dice • 🏆 Victory</p>
-            <p>For 3-6 players on the same network</p>
+  return (
+    <div className="game-container menu container-center">
+      <div className="card">
+        <h1 className="title">Settlers of Catan</h1>
+        
+        <div className="text-center" style={{ marginBottom: '24px' }}>
+          <div className={`status ${connectionStatus === 'connected' ? 'connected' : 'disconnected'}`}>
+            {connectionStatus === 'connected' ? '🟢 Connected' : '🔴 Disconnected'}
           </div>
         </div>
+        
+        {errorMessage && (
+          <div className="alert error">
+            {errorMessage}
+          </div>
+        )}
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <input
+            type="text"
+            placeholder="Enter your name"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            className="input"
+            maxLength={20}
+          />
+          
+          <button
+            onClick={createGame}
+            disabled={!canCreateGame}
+            className={`btn ${canCreateGame ? 'success' : 'secondary'}`}
+          >
+            Create New Game
+          </button>
+          
+          <div className="text-center text-muted">or</div>
+          
+          <input
+            type="text"
+            placeholder="Enter Game ID"
+            value={joinGameId}
+            onChange={(e) => setJoinGameId(e.target.value.toUpperCase())}
+            className="input"
+          />
+          
+          <button
+            onClick={joinGame}
+            disabled={!canJoinGame}
+            className={`btn ${canJoinGame ? 'primary' : 'secondary'}`}
+          >
+            Join Game
+          </button>
+        </div>
+        
+        <div className="text-center text-small" style={{ marginTop: '24px' }}>
+          <p>🏝️ Multiplayer Catan for 3-6 players</p>
+          <p>Make sure all players are on the same network!</p>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // Lobby Interface
   if (gameState === 'lobby') {
-    const isHost = players.length > 0 && players[0].id === localPlayerId;
-    
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-500 via-blue-500 to-purple-600 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-2xl w-full">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Game Lobby</h1>
-            <p className="text-gray-600">Waiting for players to join</p>
-          </div>
-          
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl mb-8 text-center">
-            <div className="text-4xl font-mono font-bold text-blue-800 mb-2 tracking-wider">
-              {gameId}
-            </div>
-            <div className="text-sm text-blue-600 font-medium">
-              📱 Share this Game ID with other players
-            </div>
-          </div>
-          
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-800">
-                Players ({players.length}/6)
-              </h3>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Users className="w-4 h-4" />
-                Need 3+ to start
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {players.map((player, index) => (
-                <div key={player.id} className="bg-gray-50 rounded-lg p-4 flex items-center gap-4">
-                  <div 
-                    className="w-6 h-6 rounded-full ring-2 ring-white shadow-md"
-                    style={{ backgroundColor: player.color }}
-                  />
-                  <div className="flex-1">
-                    <div className="font-semibold text-gray-800">{player.name}</div>
-                    <div className="text-sm text-gray-500">Player {index + 1}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    {index === 0 && (
-                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium">
-                        👑 Host
-                      </span>
-                    )}
-                    {player.id === localPlayerId && (
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
-                        You
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-              
-              {Array.from({ length: 6 - players.length }).map((_, i) => (
-                <div key={`empty-${i}`} className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-center text-gray-400">
-                  <Users className="w-6 h-6 mr-2" />
-                  Waiting for player...
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            {isHost && (
-              <button
-                onClick={startGame}
-                disabled={players.length < 3}
-                className={`w-full py-4 px-6 rounded-lg text-lg font-semibold transition-all duration-200 ${
-                  players.length >= 3
-                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {players.length < 3 ? '⏳ Need at least 3 players' : '🚀 Start Game!'}
-              </button>
-            )}
-            
-            {!isHost && (
-              <div className="text-center py-4 text-gray-600 bg-gray-50 rounded-lg">
-                ⏳ Waiting for host to start the game...
-              </div>
-            )}
-            
-            <button
-              onClick={() => setGameState('menu')}
-              className="w-full py-3 px-6 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all duration-200"
-            >
-              ← Leave Game
-            </button>
+  const isHost = players.length > 0 && players[0].id === localPlayerId;
+  
+  return (
+    <div className="game-container lobby container-center">
+      <div className="card large lobby-container">
+        <h1 className="title">Game Lobby</h1>
+        
+        <div className="game-id-display">
+          <div className="game-id-code">{gameId}</div>
+          <div className="game-id-instructions">
+            Share this Game ID with other players
           </div>
         </div>
+        
+        <div className="players-list">
+          <h3 className="players-list-title">
+            Players ({players.length}/6):
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {players.map((player, index) => (
+              <div key={player.id} className="player-item">
+                <div 
+                  className="player-color"
+                  style={{ backgroundColor: player.color }}
+                />
+                <span className="player-name">{player.name}</span>
+                {index === 0 && <span className="status host">Host</span>}
+                {player.id === localPlayerId && <span className="status you">You</span>}
+              </div>
+            ))}
+            
+            {players.length < 6 && (
+              <div className="waiting-player">
+                Waiting for more players...
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {isHost && (
+            <button
+              onClick={startGame}
+              disabled={players.length < 3}
+              className={`btn ${players.length < 3 ? 'secondary' : 'success'}`}
+            >
+              {players.length < 3 ? 'Need at least 3 players' : 'Start Game!'}
+            </button>
+          )}
+          
+          {!isHost && (
+            <div className="text-center text-muted" style={{ padding: '12px' }}>
+              Waiting for host to start the game...
+            </div>
+          )}
+          
+          <button
+            onClick={() => setGameState('menu')}
+            className="btn secondary"
+          >
+            Leave Game
+          </button>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // Main Game Interface
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-gray-800">Settlers of Catan</h1>
-              <div className="text-sm font-mono bg-gray-100 px-3 py-1 rounded">
-                Game: {gameId}
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setShowChat(!showChat)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200"
-              >
-                <MessageCircle className="w-4 h-4" />
-                Chat
-              </button>
-              <div className="text-sm text-gray-600">
-                Turn: <span className="font-bold" style={{ color: currentPlayer?.color }}>
-                  {currentPlayer?.name}
-                </span>
-              </div>
+    <div className="game-container">
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+      {/* Header */}
+      <div className="control-panel" style={{ marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 className="title" style={{ marginBottom: 0 }}>Settlers of Catan</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button
+              onClick={() => setShowChat(!showChat)}
+              className="btn primary icon"
+            >
+              <MessageCircle size={16} />
+              Chat
+            </button>
+            <div className="text-small">
+              Turn: <span style={{ fontWeight: 'bold', color: currentPlayer?.color }}>
+                {currentPlayer?.name}
+              </span>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          {/* Left sidebar - Players */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-white">Players</h3>
-            {players.map(player => (
-              <PlayerPanel
-                key={player.id}
-                player={player}
-                isCurrentPlayer={currentPlayerIndex === players.indexOf(player)}
-                isLocalPlayer={player.id === localPlayerId}
-              />
-            ))}
-          </div>
+        <div className="game-board-container">
+        {/* Left sidebar - Players */}
+        <div className="players-sidebar">
+          <h3 className="subtitle" style={{ color: '#fff' }}>Players</h3>
+          {players.map(player => (
+            <div
+              key={player.id}
+              className={`player-panel ${currentPlayerIndex === players.indexOf(player) ? 'current' : ''}`}
+            >
+              <div className="player-header">
+                <div 
+                  className="player-color"
+                  style={{ backgroundColor: player.color }}
+                />
+                <span className="player-name">{player.name}</span>
+                {currentPlayerIndex === players.indexOf(player) && <Crown size={16} color="#eab308" />}
+                {player.id === localPlayerId && <span className="status you">You</span>}
+              </div>
+              
+              <div className="player-stats">
+                <div className="player-stat">
+                  <span>VP:</span>
+                  <span className="player-stat-value">{player.victoryPoints}</span>
+                </div>
+                <div className="player-stat">
+                  <span>Cards:</span>
+                  <span className="player-stat-value">{player.totalCards}</span>
+                </div>
+                <div className="player-stat">
+                  <span>Roads:</span>
+                  <span className="player-stat-value">{player.roads}</span>
+                </div>
+                <div className="player-stat">
+                  <span>Settlements:</span>
+                  <span className="player-stat-value">{player.settlements}</span>
+                </div>
+                <div className="player-stat">
+                  <span>Cities:</span>
+                  <span className="player-stat-value">{player.cities}</span>
+                </div>
+                <div className="player-stat">
+                  <span>Knights:</span>
+                  <span className="player-stat-value">{player.knights}</span>
+                </div>
+              </div>
+              
+              <div className="player-achievements">
+                {player.hasLongestRoad && (
+                  <div className="achievement longest-road">
+                    <Minus size={12} />
+                    Longest Road
+                  </div>
+                )}
+                {player.hasLargestArmy && (
+                  <div className="achievement largest-army">
+                    <Sword size={12} />
+                    Largest Army
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
 
           {/* Main game area */}
-          <div className="xl:col-span-2 space-y-6">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Game phase indicator */}
             <GamePhaseIndicator
               gamePhase={gamePhase}
@@ -927,28 +927,24 @@ function App() {
             />
             
             {/* Dice and turn controls */}
-            <div className="bg-white rounded-xl p-6 shadow-lg">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <span className="text-lg font-semibold">Dice:</span>
+            <div className="control-panel">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div className="dice-container">
+                  <span style={{ fontWeight: '500' }}>Dice:</span>
                   <DiceComponent value={dice[0]} isRolling={isRolling} />
                   <DiceComponent value={dice[1]} isRolling={isRolling} />
-                  <div className="ml-4 text-xl font-bold text-gray-700">
+                  <span style={{ marginLeft: '8px', fontWeight: 'bold' }}>
                     Total: {dice[0] + dice[1]}
-                  </div>
+                  </span>
                 </div>
                 
                 {isLocalPlayerTurn && (
-                  <div className="flex gap-3">
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     {turnPhase === 'roll' && (
                       <button
                         onClick={rollDice}
                         disabled={isRolling}
-                        className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
-                          isRolling
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl'
-                        } text-white`}
+                        className={`btn ${isRolling ? 'secondary' : 'success'}`}
                       >
                         🎲 Roll Dice
                       </button>
@@ -957,7 +953,7 @@ function App() {
                     {(turnPhase === 'build' || (gamePhase === GAME_PHASES.MAIN_GAME && turnPhase !== 'roll' && turnPhase !== 'robber')) && (
                       <button
                         onClick={endTurn}
-                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                        className="btn danger"
                       >
                         End Turn
                       </button>
@@ -967,16 +963,16 @@ function App() {
               </div>
               
               {turnPhase === 'robber' && isLocalPlayerTurn && (
-                <div className="text-center p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-800 font-semibold text-lg">
+                <div className="turn-phase robber">
+                  <p style={{ fontWeight: '500' }}>
                     🥷 Robber activated! Click on a hex to move the robber
                   </p>
                 </div>
               )}
               
               {gamePhase === GAME_PHASES.INITIAL_PLACEMENT && isLocalPlayerTurn && (
-                <div className="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-blue-800 font-semibold">
+                <div className="turn-phase initial-placement">
+                  <p style={{ fontWeight: '500' }}>
                     {turnPhase === 'place_settlement' && '🏠 Click on a vertex to place your settlement'}
                     {turnPhase === 'place_road' && '🛤️ Click on an edge to place your road'}
                   </p>
@@ -986,12 +982,12 @@ function App() {
           </div>
 
           {/* Right sidebar - Resources and actions */}
-          <div className="space-y-6">
+          <div className="controls-sidebar">
             {/* Local player resources */}
             {localPlayer && (
-              <div className="bg-white rounded-xl p-6 shadow-lg">
-                <h3 className="text-xl font-bold mb-4">Your Resources</h3>
-                <div className="grid grid-cols-1 gap-3">
+              <div className="control-panel">
+                <h3 className="control-panel-title">Your Resources</h3>
+                <div className="resource-cards">
                   {Object.values(RESOURCES).map(resource => (
                     <ResourceCard 
                       key={resource} 
@@ -1005,57 +1001,57 @@ function App() {
             
             {/* Building actions */}
             {isLocalPlayerTurn && gamePhase === GAME_PHASES.MAIN_GAME && turnPhase === 'build' && (
-              <div className="bg-white rounded-xl p-6 shadow-lg">
-                <h3 className="text-xl font-bold mb-4">Build</h3>
-                <div className="space-y-3">
+              <div className="control-panel">
+                <h3 className="control-panel-title">Build</h3>
+                <div className="build-actions">
                   <button
                     onClick={() => {/* Building will be placed via board click */}}
                     disabled={!canAfford(BUILDING_COSTS[BUILDINGS.ROAD])}
-                    className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center gap-3 ${
+                    className={`btn build-button ${
                       canAfford(BUILDING_COSTS[BUILDINGS.ROAD])
-                        ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-md hover:shadow-lg'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        ? 'warning'
+                        : 'secondary'
                     }`}
                   >
-                    <Minus className="w-5 h-5" />
+                    <Minus size={16} />
                     Road (🌲 + 🧱)
                   </button>
                   
                   <button
                     onClick={() => {/* Building will be placed via board click */}}
                     disabled={!canAfford(BUILDING_COSTS[BUILDINGS.SETTLEMENT])}
-                    className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center gap-3 ${
+                    className={`btn build-button ${
                       canAfford(BUILDING_COSTS[BUILDINGS.SETTLEMENT])
-                        ? 'bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        ? 'success'
+                        : 'secondary'
                     }`}
                   >
-                    <Home className="w-5 h-5" />
+                    <Home size={16} />
                     Settlement
                   </button>
                   
                   <button
                     onClick={() => {/* Building will be placed via board click */}}
                     disabled={!canAfford(BUILDING_COSTS[BUILDINGS.CITY]) || !localPlayer || localPlayer.settlements === 0}
-                    className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center gap-3 ${
+                    className={`btn build-button ${
                       (canAfford(BUILDING_COSTS[BUILDINGS.CITY]) && localPlayer && localPlayer.settlements > 0)
-                        ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-md hover:shadow-lg'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        ? 'purple'
+                        : 'secondary'
                     }`}
                   >
-                    <Building className="w-5 h-5" />
+                    <Building size={16} />
                     City (🌾🌾 + ⛰️⛰️⛰️)
                   </button>
                   
                   <button
                     disabled={!canAfford({ wheat: 1, sheep: 1, ore: 1 })}
-                    className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center gap-3 ${
+                    className={`btn build-button ${
                       canAfford({ wheat: 1, sheep: 1, ore: 1 })
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        ? 'primary'
+                        : 'secondary'
                     }`}
                   >
-                    <Gift className="w-5 h-5" />
+                    <Gift size={16} />
                     Dev Card (🌾 + 🐑 + ⛰️)
                   </button>
                 </div>
@@ -1063,11 +1059,11 @@ function App() {
             )}
             
             {/* Game log */}
-            <div className="bg-white rounded-xl p-6 shadow-lg">
-              <h3 className="text-xl font-bold mb-4">Game Log</h3>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="control-panel">
+              <h3 className="control-panel-title">Game Log</h3>
+              <div className="game-log">
                 {gameLog.map((entry, index) => (
-                  <div key={index} className="text-sm text-gray-700 p-2 bg-gray-50 rounded">
+                  <div key={index} className="game-log-entry">
                     {entry}
                   </div>
                 ))}
@@ -1079,39 +1075,41 @@ function App() {
 
       {/* Chat modal */}
       {showChat && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96">
-            <h3 className="text-xl font-bold mb-4">Game Chat</h3>
-            <div className="border rounded-lg p-3 h-48 overflow-y-auto mb-4 space-y-2 bg-gray-50">
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3 className="modal-title">Game Chat</h3>
+            <div className="chat-messages">
               {chatMessages.map(msg => (
-                <div key={msg.id} className="text-sm">
-                  <span className="font-medium" style={{ color: players.find(p => p.id === msg.playerId)?.color }}>
+                <div key={msg.id} className="chat-message">
+                  <span className="chat-sender" style={{ color: players.find(p => p.id === msg.playerId)?.color || '#374151' }}>
                     {msg.playerName}:
                   </span>
                   <span className="ml-2">{msg.message}</span>
-                  <span className="text-gray-400 text-xs ml-2">{msg.timestamp}</span>
+                  <span className="chat-timestamp">{msg.timestamp}</span>
                 </div>
               ))}
             </div>
-            <div className="flex gap-2">
+            <div className="chat-input-container">
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
                 placeholder="Type a message..."
-                className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="chat-input"
               />
               <button
                 onClick={sendChatMessage}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200"
+                className="btn primary"
+                style={{ marginLeft: '8px', width: '80px' }}
               >
                 Send
               </button>
             </div>
             <button
               onClick={() => setShowChat(false)}
-              className="w-full mt-3 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg transition-all duration-200"
+              className="btn secondary"
+              style={{ width: '100%', marginTop: '12px' }}
             >
               Close
             </button>
